@@ -52,7 +52,7 @@ defmodule SportScraper.VegasInsider do
     {_, _, [team_name]} = team_data
     {_, _, [odds]} = odds_data
 
-    %{odds: odds, team_name: team_name, sports_league: format_sport(sport)}
+    %{odds: odds, team_name: String.trim(team_name), sports_league: format_sport(sport)}
   end
 
   defp format_moneyline(%{odds: odds} = team) do
