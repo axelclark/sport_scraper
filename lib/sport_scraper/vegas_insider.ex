@@ -10,7 +10,7 @@ defmodule SportScraper.VegasInsider do
 
   def get_all_odds() do
     Enum.reduce(@sports, %{}, fn sport, acc ->
-      Map.put(acc, sport, get_odds(sport))
+      Map.put(acc, format_sport(sport), get_odds(sport))
     end)
   end
 
@@ -22,9 +22,9 @@ defmodule SportScraper.VegasInsider do
         body
         |> Floki.find(".table-wrapper.cellTextNorm td")
         |> Stream.chunk_every(2)
-        |> Stream.map(&extract_name_and_odds/1)
+        |> Stream.map(&extract_name_and_odds(&1, sport))
         |> Stream.filter(&String.contains?(&1.odds, "/"))
-        |> Stream.map(&format_odds/1)
+        |> Stream.map(&format_moneyline/1)
         |> Enum.reduce_while([], &remove_new_category/2)
         |> Enum.reverse()
 
@@ -40,25 +40,40 @@ defmodule SportScraper.VegasInsider do
 
   ## get_odds
 
-  defp extract_name_and_odds([team_data, odds_data]) do
+  defp format_sport("college-basketball"), do: "CBB"
+  defp format_sport("college-football"), do: "CFB"
+  defp format_sport("mlb"), do: "MLB"
+  defp format_sport("nba"), do: "NBA"
+  defp format_sport("nfl"), do: "NFL"
+  defp format_sport("nhl"), do: "NHL"
+  defp format_sport(name), do: name
+
+  defp extract_name_and_odds([team_data, odds_data], sport) do
     {_, _, [team_name]} = team_data
     {_, _, [odds]} = odds_data
 
-    %{odds: odds, team_name: team_name}
+    %{odds: odds, team_name: team_name, sports_league: format_sport(sport)}
   end
 
-  defp format_odds(%{odds: odds} = team) do
+  defp format_moneyline(%{odds: odds} = team) do
     odds =
       odds
       |> String.split("/")
       |> Enum.map(&String.to_integer(&1))
-      |> calculate_odds()
+      |> convert_fractional_to_moneyline()
 
     %{team | odds: odds}
   end
 
-  defp calculate_odds([numerator, denominator]) do
-    odds = numerator / denominator * 200
+  defp convert_fractional_to_moneyline([numerator, denominator])
+       when numerator / denominator > 1 do
+    odds = numerator / denominator * 100
+    round(odds)
+  end
+
+  defp convert_fractional_to_moneyline([numerator, denominator])
+       when numerator / denominator <= 1 do
+    odds = denominator / numerator * -100
     round(odds)
   end
 
