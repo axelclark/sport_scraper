@@ -22,7 +22,8 @@ defmodule SportScraper.MixProject do
   defp deps do
     [
       {:httpoison, "~> 1.4"},
-      {:floki, "~> 0.20.0"}
+      {:floki, "~> 0.20.0"},
+      {:nimble_csv, "~> 0.5"}
     ]
   end
 end
